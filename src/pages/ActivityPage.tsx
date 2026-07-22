@@ -1,23 +1,26 @@
-import { useState } from 'react'
-import { Activity, CheckCircle2, Clock3, TriangleAlert } from 'lucide-react'
+import { Activity, CheckCircle2, ContactRound, PanelsTopLeft } from 'lucide-react'
+import type { Agent } from '../types/agent'
 import { ActivityFeed } from '../components/dashboard/ActivityFeed'
 
-export function ActivityPage() {
-  const [range, setRange] = useState('24h')
+interface ActivityPageProps {
+  agents: Agent[]
+}
+
+export function ActivityPage({ agents }: ActivityPageProps) {
+  const leads = agents.flatMap((agent) => agent.leads)
+  const qualified = leads.filter((lead) => lead.status === 'qualified').length
+  const activeWidgets = agents.reduce((total, agent) => total + agent.activeWidgets, 0)
 
   return (
     <>
-      <section className="page-intro">
-        <div><span className="eyebrow">Runtime history</span><h1>Agent activity</h1><p>Review completed work, running tasks, and events that need attention.</p></div>
-        <label className="standalone-select">Time range<select value={range} onChange={(event) => setRange(event.target.value)}><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option></select></label>
-      </section>
+      <section className="page-intro"><div><span className="eyebrow">Supabase records</span><h1>Workspace activity</h1><p>Recent lead activity and live resource totals from your agents.</p></div></section>
       <section className="summary-strip">
-        <article><span className="summary-icon success"><CheckCircle2 size={18} /></span><div><strong>186</strong><p>Completed events</p></div></article>
-        <article><span className="summary-icon info"><Activity size={18} /></span><div><strong>4</strong><p>Tasks running now</p></div></article>
-        <article><span className="summary-icon neutral"><Clock3 size={18} /></span><div><strong>22m</strong><p>Avg. task duration</p></div></article>
-        <article><span className="summary-icon warning"><TriangleAlert size={18} /></span><div><strong>1</strong><p>Requires attention</p></div></article>
+        <article><span className="summary-icon success"><CheckCircle2 size={18} /></span><div><strong>{qualified}</strong><p>Qualified leads</p></div></article>
+        <article><span className="summary-icon info"><ContactRound size={18} /></span><div><strong>{leads.length}</strong><p>Total leads</p></div></article>
+        <article><span className="summary-icon neutral"><PanelsTopLeft size={18} /></span><div><strong>{activeWidgets}</strong><p>Active widgets</p></div></article>
+        <article><span className="summary-icon warning"><Activity size={18} /></span><div><strong>{agents.filter((agent) => agent.isActive).length}</strong><p>Active agents</p></div></article>
       </section>
-      <ActivityFeed />
+      <ActivityFeed agents={agents} />
     </>
   )
 }

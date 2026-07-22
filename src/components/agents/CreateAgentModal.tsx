@@ -1,17 +1,23 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Bot, X } from 'lucide-react'
-import type { Agent, AgentCategory } from '../../types/agent'
+import type { CreateAgentInput } from '../../types/agent'
 
 interface CreateAgentModalProps {
   open: boolean
   onClose: () => void
-  onCreate: (agent: Agent) => void
+  onCreate: (input: CreateAgentInput) => Promise<void>
 }
 
+const toSlug = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
 export function CreateAgentModal({ open, onClose, onCreate }: CreateAgentModalProps) {
-  const [name, setName] = useState('')
-  const [role, setRole] = useState('')
-  const [category, setCategory] = useState<AgentCategory>('Operations')
+  const [displayName, setDisplayName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [businessName, setBusinessName] = useState('')
+  const [primaryEmail, setPrimaryEmail] = useState('')
+  const [primaryPhone, setPrimaryPhone] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -22,26 +28,23 @@ export function CreateAgentModal({ open, onClose, onCreate }: CreateAgentModalPr
 
   if (!open) return null
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    const initials = name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
-    onCreate({
-      id: `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`,
-      name,
-      role,
-      category,
-      description: `A new ${role.toLowerCase()} ready to join your autonomous team.`,
-      status: 'idle',
-      avatar: initials,
-      avatarColor: 'violet',
-      tasksCompleted: 0,
-      successRate: 100,
-      avgResponse: '—',
-      lastActive: 'just now',
-    })
-    setName('')
-    setRole('')
-    onClose()
+    setSubmitting(true)
+    setError(null)
+    try {
+      await onCreate({ displayName, slug, businessName, primaryEmail, primaryPhone })
+      setDisplayName('')
+      setSlug('')
+      setBusinessName('')
+      setPrimaryEmail('')
+      setPrimaryPhone('')
+      onClose()
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Unable to create agent.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -49,14 +52,21 @@ export function CreateAgentModal({ open, onClose, onCreate }: CreateAgentModalPr
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-agent-title">
         <div className="modal-header">
           <span className="modal-icon"><Bot size={20} /></span>
-          <div><h2 id="create-agent-title">Create a new agent</h2><p>Add a specialist to your AI team.</p></div>
+          <div><h2 id="create-agent-title">Create a new agent</h2><p>This calls the authenticated Supabase agent creation function.</p></div>
           <button type="button" onClick={onClose} aria-label="Close"><X size={19} /></button>
         </div>
         <form onSubmit={handleSubmit}>
-          <label>Agent name<input autoFocus required value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Scout" /></label>
-          <label>Role<input required value={role} onChange={(event) => setRole(event.target.value)} placeholder="e.g. Lead qualification agent" /></label>
-          <label>Team<select value={category} onChange={(event) => setCategory(event.target.value as AgentCategory)}><option>Operations</option><option>Customer Success</option><option>Engineering</option><option>Growth</option></select></label>
-          <div className="modal-actions"><button className="secondary-button" type="button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit">Create agent</button></div>
+          <div className="form-grid">
+            <label>Display name<input autoFocus required value={displayName} onChange={(event) => { setDisplayName(event.target.value); setSlug(toSlug(event.target.value)) }} placeholder="DV Buyers Agency" /></label>
+            <label>Slug<input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={slug} onChange={(event) => setSlug(toSlug(event.target.value))} placeholder="dv-buyers-agency" /></label>
+          </div>
+          <label>Business name<input value={businessName} onChange={(event) => setBusinessName(event.target.value)} placeholder="Registered business name" /></label>
+          <div className="form-grid">
+            <label>Primary email<input type="email" value={primaryEmail} onChange={(event) => setPrimaryEmail(event.target.value)} placeholder="agent@example.com" /></label>
+            <label>Primary phone<input value={primaryPhone} onChange={(event) => setPrimaryPhone(event.target.value)} placeholder="+61…" /></label>
+          </div>
+          {error && <div className="form-error">{error}</div>}
+          <div className="modal-actions"><button className="secondary-button" type="button" onClick={onClose}>Cancel</button><button className="primary-button" disabled={submitting} type="submit">{submitting ? 'Creating…' : 'Create agent'}</button></div>
         </form>
       </div>
     </div>

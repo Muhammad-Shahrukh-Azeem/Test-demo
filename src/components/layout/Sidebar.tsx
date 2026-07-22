@@ -16,6 +16,8 @@ interface SidebarProps {
   mobileOpen: boolean
   onMobileClose: () => void
   agentCount: number
+  workspaceLabel: string
+  userEmail: string
 }
 
 const primaryItems = [
@@ -30,7 +32,8 @@ const secondaryItems = [
   { label: 'Help center', icon: LifeBuoy, path: '/help' },
 ]
 
-export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, agentCount }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, agentCount, workspaceLabel, userEmail }: SidebarProps) {
+  const initials = workspaceLabel.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
   return (
     <>
       <button
@@ -68,9 +71,8 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, agentC
             ))}
           </nav>
           <div className="workspace-card">
-            <span className="workspace-avatar">AC</span>
-            <div><strong>Acme, Inc.</strong><span>Pro workspace</span></div>
-            <button type="button" aria-label="Workspace settings">•••</button>
+            <span className="workspace-avatar">{initials || 'AG'}</span>
+            <div><strong>{workspaceLabel}</strong><span>{userEmail}</span></div>
           </div>
           <button className="collapse-button" onClick={onToggle} type="button">
             <ChevronLeft size={17} />

@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, CircleDollarSign, Zap } from 'lucide-react'
+import { Building2, ContactRound, FileText, PanelsTopLeft } from 'lucide-react'
 import type { Agent } from '../../types/agent'
 
 interface StatsGridProps {
@@ -6,15 +6,16 @@ interface StatsGridProps {
 }
 
 export function StatsGrid({ agents }: StatsGridProps) {
-  const activeAgents = agents.filter((agent) => agent.status === 'active').length
-  const completedTasks = agents.reduce((total, agent) => total + agent.tasksCompleted, 0)
-  const successRate = agents.reduce((total, agent) => total + agent.successRate, 0) / agents.length
+  const activeAgents = agents.filter((agent) => agent.isActive).length
+  const totalLeads = agents.reduce((total, agent) => total + agent.leads.length, 0)
+  const activeWidgets = agents.reduce((total, agent) => total + agent.activeWidgets, 0)
+  const activeForms = agents.reduce((total, agent) => total + agent.activeContactForms, 0)
 
   const stats = [
-    { label: 'Active agents', value: activeAgents.toString(), helper: `of ${agents.length} total agents`, change: '+1 this week', icon: Bot, color: 'purple' },
-    { label: 'Tasks completed', value: completedTasks.toLocaleString(), helper: 'across all agents', change: '+12.5%', icon: CheckCircle2, color: 'blue' },
-    { label: 'Avg. success rate', value: `${successRate.toFixed(1)}%`, helper: 'last 30 days', change: '+2.1%', icon: Zap, color: 'green' },
-    { label: 'Estimated savings', value: '$18.4k', helper: 'this month', change: '+8.3%', icon: CircleDollarSign, color: 'orange' },
+    { label: 'Accessible agents', value: agents.length.toString(), helper: `${activeAgents} currently active`, icon: Building2, color: 'purple' },
+    { label: 'Captured leads', value: totalLeads.toLocaleString(), helper: 'across your agents', icon: ContactRound, color: 'blue' },
+    { label: 'Published widgets', value: activeWidgets.toLocaleString(), helper: 'active widget builds', icon: PanelsTopLeft, color: 'green' },
+    { label: 'Contact forms', value: activeForms.toLocaleString(), helper: 'active forms', icon: FileText, color: 'orange' },
   ]
 
   return (
@@ -22,7 +23,7 @@ export function StatsGrid({ agents }: StatsGridProps) {
       {stats.map((stat) => (
         <article className="stat-card" key={stat.label}>
           <div className={`stat-icon stat-icon-${stat.color}`}><stat.icon size={20} /></div>
-          <div className="stat-heading"><span>{stat.label}</span><span className="stat-change">{stat.change}</span></div>
+          <div className="stat-heading"><span>{stat.label}</span><span className="live-data-label">Live data</span></div>
           <strong className="stat-value">{stat.value}</strong>
           <p>{stat.helper}</p>
         </article>

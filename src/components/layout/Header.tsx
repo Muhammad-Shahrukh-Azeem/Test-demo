@@ -1,10 +1,15 @@
-import { Bell, Menu, Search } from 'lucide-react'
+import { Bell, LogOut, Menu, Search } from 'lucide-react'
 
 interface HeaderProps {
   onMenuClick: () => void
+  displayName: string
+  email: string
+  onSignOut: () => void
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, displayName, email, onSignOut }: HeaderProps) {
+  const initials = displayName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+
   return (
     <header className="topbar">
       <button className="mobile-menu-button" onClick={onMenuClick} type="button" aria-label="Open menu">
@@ -19,9 +24,10 @@ export function Header({ onMenuClick }: HeaderProps) {
         <button className="icon-button has-notification" type="button" aria-label="Notifications"><Bell size={19} /></button>
         <span className="topbar-divider" />
         <button className="profile-button" type="button">
-          <span className="profile-avatar">JD</span>
-          <span className="profile-copy"><strong>Jordan Davis</strong><small>Administrator</small></span>
+          <span className="profile-avatar">{initials || 'U'}</span>
+          <span className="profile-copy"><strong>{displayName}</strong><small>{email}</small></span>
         </button>
+        <button className="icon-button sign-out-button" type="button" onClick={onSignOut} aria-label="Sign out"><LogOut size={18} /></button>
       </div>
     </header>
   )

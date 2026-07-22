@@ -1,16 +1,17 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Settings2, Trash2, X } from 'lucide-react'
-import type { Agent, AgentCategory, AgentStatus } from '../../types/agent'
+import { Settings2, X } from 'lucide-react'
+import type { Agent, AgentTheme, UpdateAgentInput } from '../../types/agent'
 
 interface ConfigureAgentModalProps {
   agent: Agent | null
   onClose: () => void
-  onSave: (agent: Agent) => void
-  onDelete: (id: string) => void
+  onSave: (input: UpdateAgentInput) => Promise<void>
 }
 
-export function ConfigureAgentModal({ agent, onClose, onSave, onDelete }: ConfigureAgentModalProps) {
+export function ConfigureAgentModal({ agent, onClose, onSave }: ConfigureAgentModalProps) {
   const [draft, setDraft] = useState<Agent | null>(agent)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!agent) return
@@ -25,11 +26,18 @@ export function ConfigureAgentModal({ agent, onClose, onSave, onDelete }: Config
     setDraft((current) => current ? { ...current, [key]: value } : current)
   }
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    const avatar = draft.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
-    onSave({ ...draft, avatar })
-    onClose()
+    setSubmitting(true)
+    setError(null)
+    try {
+      await onSave(draft)
+      onClose()
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Unable to update agent.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -37,30 +45,39 @@ export function ConfigureAgentModal({ agent, onClose, onSave, onDelete }: Config
       <div className="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="configure-agent-title">
         <div className="modal-header">
           <span className="modal-icon"><Settings2 size={20} /></span>
-          <div><h2 id="configure-agent-title">Configure {agent?.name}</h2><p>Update this agent's identity, assignment, and runtime status.</p></div>
+          <div><h2 id="configure-agent-title">Configure {agent?.displayName}</h2><p>Changes are written to the agents, public profile, and branding tables.</p></div>
           <button type="button" onClick={onClose} aria-label="Close"><X size={19} /></button>
         </div>
         <form onSubmit={handleSubmit}>
+          <div className="modal-section-title">Identity</div>
           <div className="form-grid">
-            <label>Agent name<input required value={draft.name} onChange={(event) => update('name', event.target.value)} /></label>
-            <label>Role<input required value={draft.role} onChange={(event) => update('role', event.target.value)} /></label>
-            <label>Team
-              <select value={draft.category} onChange={(event) => update('category', event.target.value as AgentCategory)}>
-                <option>Operations</option><option>Customer Success</option><option>Engineering</option><option>Growth</option>
-              </select>
-            </label>
-            <label>Status
-              <select value={draft.status} onChange={(event) => update('status', event.target.value as AgentStatus)}>
-                <option value="active">Working</option><option value="idle">Available</option><option value="paused">Paused</option><option value="error">Needs attention</option>
-              </select>
-            </label>
+            <label>Display name<input required value={draft.displayName} onChange={(event) => update('displayName', event.target.value)} /></label>
+            <label>Slug<input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={draft.slug} onChange={(event) => update('slug', event.target.value)} /></label>
+            <label>Business name<input value={draft.businessName ?? ''} onChange={(event) => update('businessName', event.target.value || null)} /></label>
+            <label>Legal name<input value={draft.legalName ?? ''} onChange={(event) => update('legalName', event.target.value || null)} /></label>
+            <label>ABN<input value={draft.abn ?? ''} onChange={(event) => update('abn', event.target.value || null)} /></label>
+            <label>License number<input value={draft.licenseNumber ?? ''} onChange={(event) => update('licenseNumber', event.target.value || null)} /></label>
           </div>
-          <label>Description<textarea required rows={3} value={draft.description} onChange={(event) => update('description', event.target.value)} /></label>
-          <label>Current task<input value={draft.currentTask ?? ''} onChange={(event) => update('currentTask', event.target.value || undefined)} placeholder="No task assigned" /></label>
-          <div className="modal-actions modal-actions-split">
-            <button className="danger-button" type="button" onClick={() => { onDelete(draft.id); onClose() }}><Trash2 size={15} /> Delete agent</button>
-            <div><button className="secondary-button" type="button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit">Save changes</button></div>
+          <div className="modal-section-title">Contact and location</div>
+          <div className="form-grid">
+            <label>Primary email<input type="email" value={draft.primaryEmail ?? ''} onChange={(event) => update('primaryEmail', event.target.value || null)} /></label>
+            <label>Primary phone<input value={draft.primaryPhone ?? ''} onChange={(event) => update('primaryPhone', event.target.value || null)} /></label>
+            <label>Website URL<input type="url" value={draft.websiteUrl ?? ''} onChange={(event) => update('websiteUrl', event.target.value || null)} /></label>
+            <label>Service area<input value={draft.serviceArea ?? ''} onChange={(event) => update('serviceArea', event.target.value || null)} /></label>
+            <label>Timezone<input value={draft.timezone} onChange={(event) => update('timezone', event.target.value)} /></label>
+            <label>Locale<input value={draft.locale} onChange={(event) => update('locale', event.target.value)} /></label>
           </div>
+          <div className="modal-section-title">Public profile</div>
+          <label>Headline<input value={draft.headline ?? ''} onChange={(event) => update('headline', event.target.value || null)} /></label>
+          <label>Bio<textarea rows={3} value={draft.bio ?? ''} onChange={(event) => update('bio', event.target.value || null)} /></label>
+          <div className="modal-section-title">Branding and availability</div>
+          <div className="form-grid">
+            <label>Primary color<input type="color" value={draft.primaryColor} onChange={(event) => update('primaryColor', event.target.value)} /></label>
+            <label>Theme<select value={draft.theme} onChange={(event) => update('theme', event.target.value as AgentTheme)}><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></select></label>
+          </div>
+          <div className="toggle-row modal-toggle"><div><strong>Agent is active</strong><p>Inactive agents are excluded from the public agent directory.</p></div><button className={`toggle ${draft.isActive ? 'is-on' : ''}`} type="button" onClick={() => update('isActive', !draft.isActive)}><span /></button></div>
+          {error && <div className="form-error">{error}</div>}
+          <div className="modal-actions"><span className="member-role-note">Your role: {draft.membershipRole}</span><button className="secondary-button" type="button" onClick={onClose}>Cancel</button><button className="primary-button" disabled={submitting} type="submit">{submitting ? 'Saving…' : 'Save changes'}</button></div>
         </form>
       </div>
     </div>
